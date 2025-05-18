@@ -1,126 +1,230 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Camera Feed - 16x9</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Snapshots (Anonymous)</title>
     <style>
-        img {
-            width: 320px; /* You can adjust this width, and the height will scale proportionally */
-            height: 180px; /* This maintains the 16x9 aspect ratio for a 320px width */
-            border: 1px solid black; /* Optional: adds a border around the images */
-            margin: 5px; /* Optional: adds some space between images */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
         }
-        .camera-container {
-            display: flex; /* Arranges images in a row */
-            flex-wrap: wrap; /* Allows images to wrap to the next line if space is insufficient */
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .camera-item {
-            margin-right: 10px; /* Adds some space between camera blocks */
-            margin-bottom: 10px;
+        h1 {
+            text-align: center;
+            color: #333;
         }
         .controls {
-            margin-top: 15px;
-            margin-bottom: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
         }
-        body {
-            font-family: sans-serif;
+        .controls label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .controls input[type="radio"] {
+            margin-right: 5px;
+        }
+        .cameras {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        .camera-feed {
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            width: calc(33.333% - 20px); /* Adjust for gap */
+            min-width: 300px; /* Minimum width for smaller screens */
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .camera-feed h2 {
+            font-size: 1.2em;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        .camera-feed img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            background-color: #eee; /* Placeholder background */
+        }
+        .important-note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Live Camera Feeds (16x9)</h1>
+    <div class="container">
+        <h1>Live Camera Snapshots (Anonymous Access)</h1>
 
-    <div class="controls">
-        <label for="refreshRate">Refresh every:</label>
-        <select id="refreshRate" onchange="changeRefreshRate()">
-            <option value="0">Off</option>
-            <option value="1000">1 second</option> <option value="5000" selected>5 seconds</option>
-            <option value="15000">15 seconds</option>
-            <option value="30000">30 seconds</option>
-        </select>
-    </div>
+        <div class="important-note">
+            <p><strong>Important:</strong>
+                <ol>
+                    <li>Ensure "Allow Anonymous Snapshots" is enabled on each UVC G3 Bullet camera's settings.</li>
+                    <li><strong>CORS Issues:</strong> If images don't load, check the browser's developer console (F12) for CORS errors. The cameras must send `Access-Control-Allow-Origin` headers for this page to access images via JavaScript.</li>
+                </ol>
+            </p>
+        </div>
 
-    <div class="camera-container">
-        <div class="camera-item">
-            <p>Camera 1</p>
-            <img id="cam1" src="http://192.168.86.85/snap.jpeg" alt="Camera 1 Not Available">
+        <div class="controls">
+            <label for="refreshRate">Refresh every:</label>
+            <input type="radio" id="refreshOff" name="refreshRate" value="0" checked>
+            <label for="refreshOff">Off</label>
+
+            <input type="radio" id="refresh5" name="refreshRate" value="5">
+            <label for="refresh5">5 seconds</label>
+
+            <input type="radio" id="refresh15" name="refreshRate" value="15">
+            <label for="refresh15">15 seconds</label>
+
+            <input type="radio" id="refresh30" name="refreshRate" value="30">
+            <label for="refresh30">30 seconds</label>
         </div>
-        <div class="camera-item">
-            <p>Camera 2</p>
-            <img id="cam2" src="http://192.168.86.86/snap.jpeg" alt="Camera 2 Not Available">
-        </div>
-        <div class="camera-item">
-            <p>Camera 3</p>
-            <img id="cam3" src="http://192.168.86.87/snap.jpeg" alt="Camera 3 Not Available">
+
+        <div class="cameras">
+            <div class="camera-feed">
+                <h2>Camera 1 (192.168.86.85)</h2>
+                <img id="camera1" src="about:blank" alt="Camera 1 Feed">
+            </div>
+            <div class="camera-feed">
+                <h2>Camera 2 (192.168.86.86)</h2>
+                <img id="camera2" src="about:blank" alt="Camera 2 Feed">
+            </div>
+            <div class="camera-feed">
+                <h2>Camera 3 (192.168.86.87)</h2>
+                <img id="camera3" src="about:blank" alt="Camera 3 Feed">
+            </div>
         </div>
     </div>
 
     <script>
-        let intervalId = null;
-        const cameraBaseUrls = [
-            'http://192.168.86.85/snap.jpeg',
-            'http://192.168.86.86/snap.jpeg',
-            'http://192.168.86.87/snap.jpeg'
-        ];
-        const cameraImageElements = [
-            document.getElementById('cam1'),
-            document.getElementById('cam2'),
-            document.getElementById('cam3')
+        const cameras = [
+            { id: 'camera1', url: 'http://192.168.86.85/snap.jpeg' },
+            { id: 'camera2', url: 'http://192.168.86.86/snap.jpeg' },
+            { id: 'camera3', url: 'http://192.168.86.87/snap.jpeg' }
         ];
 
-        function refreshImages() {
-            const timestamp = new Date().getTime();
-            cameraImageElements.forEach((imgElement, index) => {
-                if (imgElement) {
-                    // Check if the image is currently broken (e.g., due to network error)
-                    // If it is, we still try to reload. If not, we append timestamp.
-                    // This helps if the image source itself is temporarily unavailable.
-                    let currentSrc = cameraBaseUrls[index];
-                    if (imgElement.naturalWidth === 0 && imgElement.naturalHeight === 0 && imgElement.complete) {
-                        // Image might be broken or not loaded yet, just try setting src again
-                        imgElement.src = currentSrc + '?' + timestamp;
-                    } else {
-                         imgElement.src = currentSrc + '?' + timestamp;
+        let refreshIntervalId = null;
+        const objectURLs = {}; // To store and revoke blob URLs
+
+        // Simple placeholder image (gray box with text) as a Data URL
+        const placeholderErrorSrc = "data:image/svg+xml," +
+            "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='240' viewBox='0 0 320 240'>" +
+            "<rect width='100%' height='100%' fill='%23eeeeee'/>" +
+            "<text x='50%' y='50%' font-family='Arial' font-size='16' fill='%23888888' dominant-baseline='middle' text-anchor='middle'>Image unavailable</text>" +
+            "</svg>";
+
+        async function fetchImage(camera) {
+            const imgElement = document.getElementById(camera.id);
+            if (!imgElement) {
+                console.error('Image element not found for camera:', camera.id);
+                return;
+            }
+
+            try {
+                // Authentication (Authorization header) is REMOVED for anonymous snapshots
+                const response = await fetch(camera.url, {
+                    cache: 'no-store' // Try to prevent caching of the snapshot
+                });
+
+                if (!response.ok) {
+                    // If anonymous snapshot isn't enabled or another error occurs
+                    let errorMsg = `HTTP error! Status: ${response.status} for ${camera.url}.`;
+                    if (response.status === 401) {
+                        errorMsg += " Ensure 'Allow Anonymous Snapshots' is enabled on the camera and no authentication is required for this URL.";
                     }
+                    throw new Error(errorMsg);
                 }
-            });
+
+                const blob = await response.blob();
+
+                if (objectURLs[camera.id]) {
+                    URL.revokeObjectURL(objectURLs[camera.id]);
+                }
+
+                const newObjectURL = URL.createObjectURL(blob);
+                imgElement.src = newObjectURL;
+                objectURLs[camera.id] = newObjectURL;
+
+            } catch (error) {
+                console.error('Failed to load image for ' + camera.id + ':', error);
+                imgElement.src = placeholderErrorSrc;
+                if (objectURLs[camera.id]) {
+                    URL.revokeObjectURL(objectURLs[camera.id]);
+                    delete objectURLs[camera.id];
+                }
+            }
         }
 
-        function changeRefreshRate() {
-            if (intervalId !== null) {
-                clearInterval(intervalId);
-                intervalId = null;
-            }
-
-            const select = document.getElementById('refreshRate');
-            const rate = parseInt(select.value, 10);
-
-            if (rate > 0) {
-                refreshImages(); // Refresh immediately
-                intervalId = setInterval(refreshImages, rate);
-            }
+        function refreshAllCameras() {
+            console.log('Refreshing images at ' + new Date().toLocaleTimeString());
+            cameras.forEach(fetchImage);
         }
 
-        // Set the initial refresh rate based on the selected option in HTML
-        document.addEventListener('DOMContentLoaded', () => {
-            // Ensure the default selected option's rate is applied on load
-            const selectedRate = parseInt(document.getElementById('refreshRate').value, 10);
-            if (selectedRate > 0) {
-                 refreshImages(); // Refresh immediately on load if a rate is set
-                 intervalId = setInterval(refreshImages, selectedRate);
+        function setupRefreshInterval(seconds) {
+            if (refreshIntervalId) {
+                clearInterval(refreshIntervalId);
+                refreshIntervalId = null;
             }
 
-            // Add basic error handling for images
-            cameraImageElements.forEach(imgElement => {
-                if (imgElement) {
-                    imgElement.onerror = function() {
-                        // You could display a placeholder or a more specific error message.
-                        // For now, the alt text will be shown by the browser.
-                        console.warn("Error loading image: " + this.src.split('?')[0]);
-                    };
-                }
+            if (seconds > 0) {
+                refreshIntervalId = setInterval(refreshAllCameras, seconds * 1000);
+                console.log(`Refresh interval set to ${seconds} seconds.`);
+            } else {
+                console.log('Refresh turned off.');
+            }
+            refreshAllCameras(); // Refresh once immediately
+        }
+
+        document.querySelectorAll('input[name="refreshRate"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const selectedRate = parseInt(this.value, 10);
+                setupRefreshInterval(selectedRate);
             });
         });
+
+        window.addEventListener('load', () => {
+            console.log('Page loaded. Fetching initial images (anonymous access)...');
+            const initialRate = parseInt(document.querySelector('input[name="refreshRate"]:checked').value, 10);
+             // Initial fetch is covered by setupRefreshInterval if rate > 0, or by direct call if rate is 0
+            if (initialRate > 0) {
+                setupRefreshInterval(initialRate);
+            } else {
+                refreshAllCameras(); // Only call this if refresh is initially off
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            for (const cameraId in objectURLs) {
+                if (objectURLs[cameraId]) {
+                    URL.revokeObjectURL(objectURLs[cameraId]);
+                }
+            }
+        });
+
     </script>
 
 </body>
