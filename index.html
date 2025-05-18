@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Feed - 16x9</title>
+    <style>
+        img {
+            width: 320px; /* You can adjust this width, and the height will scale proportionally */
+            height: 180px; /* This maintains the 16x9 aspect ratio for a 320px width */
+            border: 1px solid black; /* Optional: adds a border around the images */
+            margin: 5px; /* Optional: adds some space between images */
+        }
+        .camera-container {
+            display: flex; /* Arranges images in a row */
+            flex-wrap: wrap; /* Allows images to wrap to the next line if space is insufficient */
+        }
+        .camera-item {
+            margin-right: 10px; /* Adds some space between camera blocks */
+            margin-bottom: 10px;
+        }
+        .controls {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        body {
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Live Camera Feeds (16x9)</h1>
+
+    <div class="controls">
+        <label for="refreshRate">Refresh every:</label>
+        <select id="refreshRate" onchange="changeRefreshRate()">
+            <option value="0">Off</option>
+            <option value="1000">1 second</option> <option value="5000" selected>5 seconds</option>
+            <option value="15000">15 seconds</option>
+            <option value="30000">30 seconds</option>
+        </select>
+    </div>
+
+    <div class="camera-container">
+        <div class="camera-item">
+            <p>Camera 1</p>
+            <img id="cam1" src="http://192.168.86.85/snap.jpeg" alt="Camera 1 Not Available">
+        </div>
+        <div class="camera-item">
+            <p>Camera 2</p>
+            <img id="cam2" src="http://192.168.86.86/snap.jpeg" alt="Camera 2 Not Available">
+        </div>
+        <div class="camera-item">
+            <p>Camera 3</p>
+            <img id="cam3" src="http://192.168.86.87/snap.jpeg" alt="Camera 3 Not Available">
+        </div>
+    </div>
+
+    <script>
+        let intervalId = null;
+        const cameraBaseUrls = [
+            'http://192.168.86.85/snap.jpeg',
+            'http://192.168.86.86/snap.jpeg',
+            'http://192.168.86.87/snap.jpeg'
+        ];
+        const cameraImageElements = [
+            document.getElementById('cam1'),
+            document.getElementById('cam2'),
+            document.getElementById('cam3')
+        ];
+
+        function refreshImages() {
+            const timestamp = new Date().getTime();
+            cameraImageElements.forEach((imgElement, index) => {
+                if (imgElement) {
+                    // Check if the image is currently broken (e.g., due to network error)
+                    // If it is, we still try to reload. If not, we append timestamp.
+                    // This helps if the image source itself is temporarily unavailable.
+                    let currentSrc = cameraBaseUrls[index];
+                    if (imgElement.naturalWidth === 0 && imgElement.naturalHeight === 0 && imgElement.complete) {
+                        // Image might be broken or not loaded yet, just try setting src again
+                        imgElement.src = currentSrc + '?' + timestamp;
+                    } else {
+                         imgElement.src = currentSrc + '?' + timestamp;
+                    }
+                }
+            });
+        }
+
+        function changeRefreshRate() {
+            if (intervalId !== null) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+
+            const select = document.getElementById('refreshRate');
+            const rate = parseInt(select.value, 10);
+
+            if (rate > 0) {
+                refreshImages(); // Refresh immediately
+                intervalId = setInterval(refreshImages, rate);
+            }
+        }
+
+        // Set the initial refresh rate based on the selected option in HTML
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure the default selected option's rate is applied on load
+            const selectedRate = parseInt(document.getElementById('refreshRate').value, 10);
+            if (selectedRate > 0) {
+                 refreshImages(); // Refresh immediately on load if a rate is set
+                 intervalId = setInterval(refreshImages, selectedRate);
+            }
+
+            // Add basic error handling for images
+            cameraImageElements.forEach(imgElement => {
+                if (imgElement) {
+                    imgElement.onerror = function() {
+                        // You could display a placeholder or a more specific error message.
+                        // For now, the alt text will be shown by the browser.
+                        console.warn("Error loading image: " + this.src.split('?')[0]);
+                    };
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
